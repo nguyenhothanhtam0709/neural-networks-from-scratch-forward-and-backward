@@ -9,7 +9,7 @@ import numpy as np
 # Step 1 - numerical_gradient
 def numerical_gradient(f, x, eps=1e-5):
     # Estimate the gradient of scalar f w.r.t. array x via central finite differences
-    grad = np.zeros_like(x, dtype=float)
+    grad = np.array(x, dtype=float)
     for idx in np.ndindex(x.shape):
         x_org = x[idx]
         x[idx] = x_org + eps
