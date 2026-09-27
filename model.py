@@ -20,8 +20,18 @@ def numerical_gradient(f, x, eps=1e-5):
         grad[idx] = (f_plus - f_minus) / (2.0 * eps)
     return grad
 
-# Step 2 - gradient_check (not yet solved)
-# TODO: implement
+# Step 2 - gradient_check
+def gradient_check(analytic_grad, numeric_grad, tol=1e-5):
+    # Return max relative error between analytic and numeric gradients.
+    a_arr = np.asarray(analytic_grad, dtype=float)
+    n_arr = np.asarray(numeric_grad, dtype=float)
+    diff = np.abs(a_arr - n_arr)
+    max_arr = np.maximum(
+        np.maximum(a_arr, n_arr),
+        tol
+    )
+    e_arr = diff / max_arr
+    return float(np.max(e_arr))
 
 # Step 3 - make_dense (not yet solved)
 # TODO: implement
