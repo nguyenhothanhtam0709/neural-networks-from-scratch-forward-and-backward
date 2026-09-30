@@ -208,7 +208,7 @@ def make_loss(kind='cross_entropy'):
           return float(loss), d_logits
       
       case _:
-        raise ValueError(f"Not supported loss function: {cross_entropy}")
+        raise ValueError(f"Not supported loss function: {kind}")
 
     return loss_fn
 
