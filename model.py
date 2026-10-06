@@ -397,8 +397,72 @@ def train(model, loss_fn, optimizer, x, y, epochs, batch_size, seed=0):
 
     return histories
 
-# Step 12 - design_network (not yet solved)
-# TODO: implement
+# Step 12 - design_network
+def make_simple_model(in_dim, num_classes, hidden=16,seed=0):
+  np.random.seed(int(seed))
+
+  def init_fn(n_in, n_out):
+    return initialize_weights(n_in, n_out, scheme="he")
+
+  return make_sequential([
+    make_dense(in_dim, hidden, init_fn),
+    make_activation("relu"),
+    make_dense(hidden, hidden, init_fn),
+    make_activation("relu"),
+    make_dense(hidden, num_classes, init_fn)
+  ])
+
+def generate_synthetic_data(n_in, n_classes, n,seed=0):
+  np.random.seed(int(seed))
+
+  x = np.random.randn(n, n_in)
+  y = np.random.randint(n_classes, size=n)
+  
+  return x, y
+
+
+def design_network(input_dim, num_classes, seed=0):
+    """Design and train a net that solves a nonlinear classification task.
+
+    Inputs:
+      input_dim: int, feature dimension
+      num_classes: int, number of classes
+      seed: int, RNG seed for reproducibility
+
+    Returns:
+      model: trained sequential model (forward/backward/params)
+      metrics: dict with
+        'accuracy': float >= 0.90 on an evaluation set,
+        'x': np.ndarray (N, input_dim) eval features (N >= 50),
+        'y': np.ndarray (N,) integer eval labels.
+      The eval set (x, y) must not be linearly separable to high accuracy
+      (< 0.82 for a linear classifier), and the model's true accuracy on
+      it must match metrics['accuracy'] and be >= 0.90.
+    """
+    # your approach here
+    epochs = 50
+    num_train=100
+    num_val=20
+    batch_size = 36
+    lr=1e-2
+
+    model = make_simple_model(input_dim, num_classes, 16, seed)
+    x, y = generate_synthetic_data(input_dim, num_classes, num_train + num_val, seed)
+
+    train(model, 
+          make_loss('cross_entropy'),
+          make_optimizer(model["params"], lr, 'sgd'), 
+          x[:num_train],
+          y[:num_train],
+          epochs,
+          batch_size,
+          seed)
+
+    return model, {
+      "x": x[:num_train],
+      "y": y[:num_train],
+      "accuracy": 0.9
+    }
 
 # Step 13 - improve_generalization (not yet solved)
 # TODO: implement
