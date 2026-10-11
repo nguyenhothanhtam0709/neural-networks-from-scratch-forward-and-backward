@@ -288,7 +288,7 @@ def forward_backward(model, loss_fn, x, y):
     return loss, grads_list
 
 # Step 9 - make_optimizer
-def make_optimizer(params, lr=1e-2, kind='sgd'):
+def make_optimizer(params, lr=1e-2, kind='sgd', l2 = None):
     """Build an optimizer that updates params in place.
 
     Inputs:
@@ -310,7 +310,10 @@ def make_optimizer(params, lr=1e-2, kind='sgd'):
             assert type(param) == type(grad)
 
             if isinstance(param, np.ndarray):
-              param -= lr * grad
+              if l2 is None:
+                param -= lr * grad
+              else:
+                param = (1 - lr * l2) * param - lr * grad
             elif isinstance(param, list):
               for idx, v in enumerate(param):
                 if isinstance(v, (int, float)):
@@ -321,7 +324,10 @@ def make_optimizer(params, lr=1e-2, kind='sgd'):
               for k, v in param.items():
                 if k in grad:
                   if isinstance(v, (int, float)):
-                    param[k] -= lr * grad[k]
+                    if l2 is None:
+                      param[k] -= lr * grad[k]
+                    else:
+                      param[k] = (1 - lr * l2) * param[k] - lr * grad[k]
                   else:
                     update_param(param[k], grad[k])
             else:
@@ -470,6 +476,71 @@ def design_network(input_dim, num_classes, seed=0):
       "accuracy": accuracy
     }
 
-# Step 13 - improve_generalization (not yet solved)
-# TODO: implement
+# Step 13 - improve_generalization
+def improve_generalization(baseline_model_fn, x_train, y_train, x_val, y_val, seed=0):
+    """Improve held-out accuracy over an unregularized baseline.
+
+    Inputs:
+      baseline_model_fn: zero-arg callable -> fresh untrained sequential model
+        (dict with 'forward', 'backward', 'params') matching the data dims.
+      x_train, y_train: training features (N, D) and int labels (N,).
+      x_val, y_val: validation features (N_val, D) and int labels (N_val,).
+      seed: int for deterministic training.
+
+    Returns:
+      dict with keys:
+        'val_accuracy': float accuracy of the improved model on x_val/y_val
+        'baseline_val_accuracy': float val accuracy of plain unregularized SGD
+        'predictions': np.ndarray shape (N_val,) int preds from improved model
+        'model': the trained improved model
+
+    Required behavior:
+      val_accuracy > baseline_val_accuracy
+      predictions == argmax(model.forward(x_val), axis=1)
+      val_accuracy == mean(predictions == y_val)
+      predictions are non-constant (not a trivial single-class predictor)
+    """
+    # your approach here
+    epochs = 200
+    batch_size = 36
+    lr=0.05
+
+    model = baseline_model_fn()
+    l2_model = copy.deepcopy(model)
+
+    #region Baseline
+    train(model, 
+          make_loss('cross_entropy'),
+          make_optimizer(model["params"], lr, 'sgd'), 
+          x_train,
+          y_train,
+          epochs,
+          batch_size,
+          seed)
+
+    logits, _ = model["forward"](x_val)
+    accuracy = float((logits.argmax(axis=1) == y_val).mean())
+    #endregion
+
+    #region Weight decay
+    train(l2_model, 
+          make_loss('cross_entropy'),
+          make_optimizer(l2_model["params"], lr, 'sgd'), 
+          x_train,
+          y_train,
+          epochs,
+          batch_size,
+          seed)
+
+    l2_logits, _ = l2_model["forward"](x_val)
+    l2_prediction = l2_logits.argmax(axis=1)
+    l2_accuracy = float((l2_prediction == y_val).mean())
+    #endregion
+
+    return {
+      "val_accuracy": l2_accuracy,
+      "baseline_val_accuracy": accuracy,
+      "predictions": l2_prediction,
+      "model": l2_model,
+    }
 
