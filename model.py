@@ -288,7 +288,7 @@ def forward_backward(model, loss_fn, x, y):
     return loss, grads_list
 
 # Step 9 - make_optimizer
-def make_optimizer(params, lr=1e-2, kind='sgd', l2 = None):
+def make_optimizer(params, lr=1e-2, kind='sgd'):
     """Build an optimizer that updates params in place.
 
     Inputs:
@@ -310,10 +310,7 @@ def make_optimizer(params, lr=1e-2, kind='sgd', l2 = None):
             assert type(param) == type(grad)
 
             if isinstance(param, np.ndarray):
-              if l2 is None:
-                param -= lr * grad
-              else:
-                param = (1 - lr * l2) * param - lr * grad
+              param -= lr * grad
             elif isinstance(param, list):
               for idx, v in enumerate(param):
                 if isinstance(v, (int, float)):
@@ -324,10 +321,7 @@ def make_optimizer(params, lr=1e-2, kind='sgd', l2 = None):
               for k, v in param.items():
                 if k in grad:
                   if isinstance(v, (int, float)):
-                    if l2 is None:
-                      param[k] -= lr * grad[k]
-                    else:
-                      param[k] = (1 - lr * l2) * param[k] - lr * grad[k]
+                    param[k] -= lr * grad[k]
                   else:
                     update_param(param[k], grad[k])
             else:
@@ -525,7 +519,7 @@ def improve_generalization(baseline_model_fn, x_train, y_train, x_val, y_val, se
     #region Weight decay
     train(l2_model, 
           make_loss('cross_entropy'),
-          make_optimizer(l2_model["params"], lr, 'sgd'), 
+          make_optimizer(l2_model["params"], lr, 'sgd', l2=0.99), 
           x_train,
           y_train,
           epochs,
