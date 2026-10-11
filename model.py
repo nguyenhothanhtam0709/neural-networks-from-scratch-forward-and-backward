@@ -413,10 +413,14 @@ def make_simple_model(in_dim, num_classes, hidden=16,seed=0):
   ])
 
 def generate_synthetic_data(n_in, n_classes, n,seed=0):
-  np.random.seed(int(seed))
+  rng = np.random.RandomState(int(seed))
 
-  x = np.random.randn(n, n_in)
-  y = np.random.randint(n_classes, size=n)
+  x = rng.randn(n, n_in)
+  
+  # Label = which concentric shell (by radius) the point falls in -> not linearly separable
+  r = np.linalg.norm(x, axis=1)
+  edges = np.quantile(r, np.linspace(0, 1, n_classes + 1)[1:-1])
+  y = np.digitize(r, edges)
   
   return x, y
 
@@ -459,8 +463,6 @@ def design_network(input_dim, num_classes, seed=0):
 
     logits, _ = model["forward"](x)
     accuracy = float((logits.argmax(axis=1) == y).mean())
-
-    print(accuracy)
 
     return model, {
       "x": x[:num_train],
