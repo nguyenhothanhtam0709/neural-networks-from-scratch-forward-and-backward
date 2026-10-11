@@ -27,7 +27,7 @@ def gradient_check(analytic_grad, numeric_grad, tol=1e-5):
     n_arr = np.asarray(numeric_grad, dtype=float)
     diff = np.abs(a_arr - n_arr)
     max_arr = np.maximum(
-        np.maximum(a_arr, n_arr),
+        np.maximum(np.abs(a_arr), np.abs(n_arr)),
         tol
     )
     e_arr = diff / max_arr
@@ -440,28 +440,32 @@ def design_network(input_dim, num_classes, seed=0):
       it must match metrics['accuracy'] and be >= 0.90.
     """
     # your approach here
-    epochs = 50
-    num_train=100
-    num_val=20
+    epochs = 200
+    num_train=1000
     batch_size = 36
-    lr=1e-2
+    lr=0.05
 
-    model = make_simple_model(input_dim, num_classes, 16, seed)
-    x, y = generate_synthetic_data(input_dim, num_classes, num_train + num_val, seed)
+    model = make_simple_model(input_dim, num_classes, 64, seed)
+    x, y = generate_synthetic_data(input_dim, num_classes, num_train, seed)
 
     train(model, 
           make_loss('cross_entropy'),
           make_optimizer(model["params"], lr, 'sgd'), 
-          x[:num_train],
-          y[:num_train],
+          x,
+          y,
           epochs,
           batch_size,
           seed)
 
+    logits, _ = model["forward"](x)
+    accuracy = float((logits.argmax(axis=1) == y).mean())
+
+    print(accuracy)
+
     return model, {
       "x": x[:num_train],
       "y": y[:num_train],
-      "accuracy": 0.9
+      "accuracy": accuracy
     }
 
 # Step 13 - improve_generalization (not yet solved)
