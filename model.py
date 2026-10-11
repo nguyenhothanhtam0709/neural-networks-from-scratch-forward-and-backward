@@ -495,12 +495,13 @@ def improve_generalization(baseline_model_fn, x_train, y_train, x_val, y_val, se
       predictions are non-constant (not a trivial single-class predictor)
     """
     # your approach here
-    epochs = 200
+    epochs = 300
     batch_size = 36
     lr=0.05
+    weight_decay = 1e-2
 
     model = baseline_model_fn()
-    l2_model = copy.deepcopy(model)
+    l2_model = baseline_model_fn()
 
     #region Baseline
     train(model, 
@@ -517,9 +518,18 @@ def improve_generalization(baseline_model_fn, x_train, y_train, x_val, y_val, se
     #endregion
 
     #region Weight decay
+    sgd = make_optimizer(l2_model["params"], lr, 'sgd')
+
+    def l2_step(grads):
+      # add L2 penalty gradient (weight_decay * W) to each weight matrix
+      for param, grad in zip(l2_model["params"], grads):
+        if "W" in param:
+          grad["W"] = grad["W"] + weight_decay * param["W"]
+      sgd["step"](grads)
+
     train(l2_model, 
           make_loss('cross_entropy'),
-          make_optimizer(l2_model["params"], lr, 'sgd', l2=0.99), 
+          {"step": l2_step}, 
           x_train,
           y_train,
           epochs,
